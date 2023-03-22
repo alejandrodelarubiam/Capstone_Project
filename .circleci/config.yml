@@ -73,10 +73,11 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Ensure back-end infrastructure exists
+          name: Deploying EKS Cluster and Worker Nodes
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/infrastructure.yml \
+              --capabilities CAPABILITY_NAMED_IAM \
               --tags project=capstoneADLRM \
               --stack-name "capstoneADLRM-infrastructure-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" 
