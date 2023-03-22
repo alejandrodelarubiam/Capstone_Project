@@ -129,14 +129,14 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
   
   Cluster:
-    Type: "AWS::EKS::Cluster"
+    Type: AWS::EKS::Cluster
     Properties:
       Name: "CapstoneADLRM-Cluster-${ID}"
       RoleArn: !GetAtt EKSNodeIAMRole.Arn
       Version: "1.21"
 
   NodeGroup:
-    Type: "AWS::EKS::NodeGroup"
+    Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: "CapstoneADLRM-Cluster-${ID}"
       NodeGroupName: "CapstoneADLRM-NodeGroup-${ID}"
