@@ -82,7 +82,7 @@ jobs:
               --stack-name "capstoneADLRM-infrastructure-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" 
       # - run:
-      #     name: Add back-end ip to ansible inventory
+      #     name: Add back-end ip to ansible inventories
       #     command: |
       #       INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" --query "Reservations[].Instances[].InstanceId" --output text)
       #       PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
