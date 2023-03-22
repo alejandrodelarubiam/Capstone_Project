@@ -5,6 +5,7 @@ Parameters:
     EnvironmentName:
         Description: Our environment's name, used to import and export infrastructure from other yml files.
         Type: String
+        Default: CapstoneADLRM
     VpcCIDR:
         Description: IP range in CIDR notation for this VPC
         Type: String
