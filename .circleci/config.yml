@@ -16,7 +16,7 @@ commands:
             aws cloudformation delete-stack --stack-name capstoneADLRM-infrastructure-${CIRCLE_WORKFLOW_ID:0:7}
      
 jobs:
-  docker-ops:
+  linting:
     docker:
       - image: python:3.8.10
     working_directory: ~/repo
@@ -26,16 +26,6 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "requirements.txt" }}
             - v1-dependencies-
-      - setup_remote_docker
-      - run:
-          name: Install Docker
-          command: |
-            apt-get update
-            apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-            add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-            apt-get update
-            apt-get -y install docker-ce docker-ce-cli containerd.io
       - run:
           name: install dependencies
           command: |
@@ -59,12 +49,24 @@ jobs:
           command: |
             . venv/bin/activate
             make lint 
-      - run:
-          name: Build Docker image
-          command: |
-            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker build -t adelarubiam/CapstoneADLRM:v1.0.1 .
-            docker push adelarubiam/CapstoneADLRM:v1.0.1
+
+  docker-build:
+    docker:
+      - image: cimg/go:1.17
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - run: |
+          TAG=0.1.$CIRCLE_BUILD_NUM
+          docker build -t adelarubiam/CapstoneADLRM:$TAG .
+          echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+          docker push adelarubiam/CapstoneADLRM:$TAG
+
   deploy-infrastructure:
     docker: 
       - image: amazon/aws-cli
@@ -78,17 +80,17 @@ jobs:
               --tags project=capstoneADLRM \
               --stack-name "capstoneADLRM-infrastructure-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" 
-      - run:
-          name: Add back-end ip to ansible inventory
-          command: |
-            INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" --query "Reservations[].Instances[].InstanceId" --output text)
-            PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
-            echo "$PUBLIC_IP" >> .circleci/ansible/inventory.txt
-            cat .circleci/ansible/inventory.txt
-      - persist_to_workspace:
-          root: .circleci/ansible/
-          paths:
-            - inventory.txt
+      # - run:
+      #     name: Add back-end ip to ansible inventory
+      #     command: |
+      #       INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" --query "Reservations[].Instances[].InstanceId" --output text)
+      #       PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+      #       echo "$PUBLIC_IP" >> .circleci/ansible/inventory.txt
+      #       cat .circleci/ansible/inventory.txt
+      # - persist_to_workspace:
+      #     root: .circleci/ansible/
+      #     paths:
+      #       - inventory.txt
       - destroy-environment
 
   configure-infrastructure:
@@ -378,20 +380,20 @@ jobs:
 workflows:
   default:
     jobs:
-      - docker-ops:
+      - linting:
           filters:
             branches:
               only: [master]    
-      - deploy-infrastructure:
-          requires: [docker-ops]      
+      - docker-build:
+          requires: [linting]      
           filters:
             branches:
               only: [master]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
-      #     filters:
-      #       branches:
-      #         only: [master]   
+      - deploy-infrastructure:
+          requires: [docker-build]
+          filters:
+            branches:
+              only: [master]   
       # - run-migrations:
       #     requires: [configure-infrastructure]
       #     filters:
