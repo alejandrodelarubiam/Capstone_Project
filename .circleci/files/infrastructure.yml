@@ -1,0 +1,150 @@
+Description:
+  CapstoneADLRM Infrastructure (Kubernetes and Nodes).
+
+Parameters:
+    EnvironmentName:
+        Description: Our environment's name, used to import and export infrastructure from other yml files.
+        Type: String
+    VpcCIDR:
+        Description: IP range in CIDR notation for this VPC
+        Type: String
+        Default: 10.0.0.0/16
+    PublicSubnet1CIDR:
+        Description: IP range in CIDR notation for this Subnet
+        Type: String
+        Default: 10.0.0.0/24
+    PublicSubnet2CIDR:
+        Description: IP range in CIDR notation for this Subnet
+        Type: String
+        Default: 10.0.1.0/24
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      Tags:
+          - Key: name
+            Value: !Ref EnvironmentName
+#Creating Public Subnets
+  PublicSubnet1: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref VPC
+          AvailabilityZone: !Select [ 0, !GetAZs '' ]
+          CidrBlock: !Ref PublicSubnet1CIDR
+          MapPublicIpOnLaunch: true
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
+  PublicSubnet2: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref VPC
+          AvailabilityZone: !Select [ 1, !GetAZs '' ]
+          CidrBlock: !Ref PublicSubnet2CIDR
+          MapPublicIpOnLaunch: true
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
+  NodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub CapstoneADLRM-${ID}
+      GroupDescription: Allow ports 22, 3030 and 9100.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+  
+  EKSClusterIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eks-node-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+  EKSClusterIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "eks-cluster-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "eks.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+        - "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
+
+  EKSNodeIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "eks-node-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+  
+  Cluster:
+    Type: "AWS::EKS::Cluster"
+    Properties:
+      Name: "CapstoneADLRM-Cluster-${ID}"
+      RoleArn: !GetAtt EKSNodeIAMRole.Arn
+      Version: "1.21"
+
+  NodeGroup:
+    Type: "AWS::EKS::NodeGroup"
+    Properties:
+      ClusterName: "CapstoneADLRM-Cluster-${ID}"
+      NodeGroupName: "CapstoneADLRM-NodeGroup-${ID}"
+      NodeRole: !GetAtt EKSNodeIAMRole.Arn
+      Subnets:
+      - !Ref PublicSubnet1
+      - !Ref PublicSubnet2
+      ScalingConfig:
+        DesiredSize: 1
+        MaxSize: 2
+        MinSize: 1
+      InstanceTypes:
+        - "t2.micro"
+      SecurityGroups:
+      - Ref: NodeSecurityGroup      
