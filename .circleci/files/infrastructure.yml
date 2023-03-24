@@ -8,7 +8,8 @@ Parameters:
         Default: CapstoneADLRM
     ID:
         Description: Unique identifier.
-        Type: String    
+        Type: String
+        Default: 01234
     VpcCIDR:
         Description: IP range in CIDR notation for this VPC
         Type: String
@@ -28,9 +29,45 @@ Resources:
     Properties:
       CidrBlock: !Ref VpcCIDR
       EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
           - Key: name
             Value: !Ref EnvironmentName
+  InternetGateway:
+      Type: AWS::EC2::InternetGateway
+      Properties:
+          Tags:
+              - Key: Name
+                Value: !Ref EnvironmentName
+  InternetGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+          InternetGatewayId: !Ref InternetGateway
+          VpcId: !Ref VPC
+  PublicRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref VPC
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${EnvironmentName} Public Routes
+  DefaultPublicRoute: 
+      Type: AWS::EC2::Route
+      DependsOn: InternetGatewayAttachment
+      Properties: 
+          RouteTableId: !Ref PublicRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref PublicRouteTable
+          SubnetId: !Ref PublicSubnet1
+  PublicSubnet2RouteTableAssociation:
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref PublicRouteTable
+          SubnetId: !Ref PublicSubnet2 
 #Creating Public Subnets
   PublicSubnet1: 
       Type: AWS::EC2::Subnet
@@ -52,49 +89,27 @@ Resources:
           Tags: 
               - Key: Name 
                 Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
-  NodeSecurityGroup:
+  EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub CapstoneADLRM-${ID}
+      GroupName: CapstoneADLRM-SG
       GroupDescription: Allow ports 22, 3030 and 9100.
+      VpcId: !Ref VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          CidrIp: 0.0.0.0/0
-  
-  EKSClusterIAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: eks-node-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-            - eks.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
 
   EKSClusterIAMRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: "eks-cluster-role"
+      RoleName: "myEKSClusterRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -111,7 +126,7 @@ Resources:
   EKSNodeIAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "eks-node-role"
+      RoleName: "myEKSWorkerNodeRole"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -127,19 +142,29 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-  
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+
   Cluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: "CapstoneADLRM-Cluster-${ID}"
-      RoleArn: !GetAtt EKSNodeIAMRole.Arn
-      Version: "1.21"
+      Name: "CapstoneADLRM-Cluster"
+      RoleArn: !GetAtt EKSClusterIAMRole.Arn
+      Version: "1.25"
+      ResourcesVpcConfig:
+        SecurityGroupIds: 
+        - !GetAtt EKSSecurityGroup.GroupId
+        SubnetIds: 
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+        EndpointPublicAccess: true   
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
+    DependsOn: Cluster
     Properties:
-      ClusterName: "CapstoneADLRM-Cluster-${ID}"
-      NodeGroupName: "CapstoneADLRM-NodeGroup-${ID}"
+      ClusterName: "CapstoneADLRM-Cluster"
+      NodegroupName: !Sub "CapstoneADLRM-NodeGroup-${ID}"
       NodeRole: !GetAtt EKSNodeIAMRole.Arn
       Subnets:
       - !Ref PublicSubnet1
@@ -150,5 +175,5 @@ Resources:
         MinSize: 1
       InstanceTypes:
         - "t2.micro"
-      SecurityGroups:
-      - Ref: NodeSecurityGroup      
+      Tags:
+        kubernetes.io/cluster/CapstoneADLRM-Cluster : owned
