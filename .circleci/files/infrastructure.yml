@@ -148,7 +148,7 @@ Resources:
   Cluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: "CapstoneADLRM-Cluster"
+      Name: !Sub "CapstoneADLRM-Cluster-${ID}"
       RoleArn: !GetAtt EKSClusterIAMRole.Arn
       Version: "1.25"
       ResourcesVpcConfig:
@@ -157,23 +157,45 @@ Resources:
         SubnetIds: 
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
-        EndpointPublicAccess: true   
+        EndpointPublicAccess: true
+
+  VpcCniAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: Cluster
+    Properties: 
+      AddonName: vpc-cni
+      ClusterName: !Sub "CapstoneADLRM-Cluster-${ID}"
+  
+  CoreDnsAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: Cluster
+    Properties: 
+      AddonName: coredns
+      ClusterName: !Sub "CapstoneADLRM-Cluster-${ID}"
+  
+  KubeProxyAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: Cluster
+    Properties:
+      AddonName: kube-proxy
+      ClusterName: !Sub "CapstoneADLRM-Cluster-${ID}"
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
-    DependsOn: Cluster
+    DependsOn: [Cluster,  VpcCniAddon, CoreDnsAddon, KubeProxyAddon]
     Properties:
-      ClusterName: "CapstoneADLRM-Cluster"
+      ClusterName: !Sub "CapstoneADLRM-Cluster-${ID}"
       NodegroupName: !Sub "CapstoneADLRM-NodeGroup-${ID}"
       NodeRole: !GetAtt EKSNodeIAMRole.Arn
       Subnets:
       - !Ref PublicSubnet1
       - !Ref PublicSubnet2
       ScalingConfig:
-        DesiredSize: 1
-        MaxSize: 2
-        MinSize: 1
+        DesiredSize: 2
+        MaxSize: 3
+        MinSize: 2
+      AmiType: AL2_x86_64
+      CapacityType: ON_DEMAND
+      DiskSize: 20
       InstanceTypes:
         - "t2.micro"
-      Tags:
-        kubernetes.io/cluster/CapstoneADLRM-Cluster : owned

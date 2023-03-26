@@ -7,3 +7,4 @@ INFO:werkzeug: * Running on http://0.0.0.0:80/ (Press CTRL+C to quit)
 INFO:app:Main request successfull
 INFO:werkzeug:127.0.0.1 - - [22/Mar/2023 13:05:34] "GET / HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [22/Mar/2023 13:05:34] "GET /favicon.ico HTTP/1.1" 404 -
+INFO:werkzeug: * Running on http://0.0.0.0:80/ (Press CTRL+C to quit)
