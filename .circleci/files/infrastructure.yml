@@ -92,7 +92,7 @@ Resources:
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: CapstoneADLRM-SG
+      GroupName: !Sub "CapstoneADLRM-SG-${ID}"
       GroupDescription: Allow ports 22, 3030 and 9100.
       VpcId: !Ref VPC
       SecurityGroupIngress:
@@ -109,7 +109,7 @@ Resources:
   EKSClusterIAMRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: "myEKSClusterRole"
+      RoleName: !Sub "myEKSClusterRole-${ID}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -126,7 +126,7 @@ Resources:
   EKSNodeIAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "myEKSWorkerNodeRole"
+      RoleName: !Sub "myEKSWorkerNodeRole-${ID}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:

@@ -193,5 +193,5 @@ workflows:
             branches:
               only: [master]
       - cleanup:
-          requires: [deploy-to-eks]
+          requires: [smoke-test]
       
