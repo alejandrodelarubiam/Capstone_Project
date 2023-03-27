@@ -139,7 +139,10 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             mv kubectl /usr/local/bin
-
+      - run:
+          name: Authenticate with EKS
+          command: |
+            aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Obtaining URL and performing smoke test.
           command: |
