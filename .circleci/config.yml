@@ -10,6 +10,15 @@ commands:
           command: |
             echo "Destroying environment: ${CIRCLE_WORKFLOW_ID:0:7}"
             aws cloudformation delete-stack --stack-name capstoneADLRM-infrastructure-${CIRCLE_WORKFLOW_ID:0:7}
+  destroy-kubernetes:
+    description: Destroy deployments and services of Kubernetes.
+    steps:
+      - run:
+          name: Destroy kubernetes
+          when: on_fail
+          command: |
+            kubectl delete deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
+            kubectl delete svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
      
 jobs:
   linting:
@@ -85,6 +94,11 @@ jobs:
             chmod +x kubectl
             mv kubectl /usr/local/bin
       - run:
+          name: Install AWS CLI
+          command: |
+            apt-get install -y python3-pip
+            pip3 install awscli
+      - run:
           name: Authenticate with EKS
           command: |
             aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
@@ -93,6 +107,7 @@ jobs:
           command: |
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
             kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy-environment
 
   smoke-test:
     docker:
@@ -127,6 +142,7 @@ jobs:
             else
               exit 1
             fi
+      - destroy-kubernetes
       - destroy-environment
   cleanup:
     docker:
