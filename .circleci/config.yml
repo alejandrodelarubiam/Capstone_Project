@@ -115,6 +115,7 @@ jobs:
       - run:
           name: Deploy to EKS
           command: |
+            cd .circleci/files
             TAG=$(cat tag.txt)
             echo "Deploying image with Tag: $TAG"
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
