@@ -121,7 +121,7 @@ jobs:
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
             kubectl rollout status deployment/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --watch=true
             kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
-            until kubectl get service/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do : ; done
+            until kubectl get service/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do : ; done
             URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
             echo ${URL}
             curl -v ${URL}:8000
