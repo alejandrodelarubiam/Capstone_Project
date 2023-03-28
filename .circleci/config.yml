@@ -119,6 +119,7 @@ jobs:
             TAG=$(cat tag.txt)
             echo "Deploying image with Tag: $TAG"
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
+            kubectl rollout status deployment/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --watch=true
             kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
       - destroy-environment
 
@@ -148,32 +149,21 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             mv kubectl /usr/local/bin
-      # - run:
-      #     name: Authenticate with EKS
-      #     command: |
-      #       aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Authenticate with EKS
+          command: |
+            aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Obtaining URL and performing smoke test.
           command: |
-            # URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
-            # echo ${URL}:8000 
-            # if curl -s ${URL}:8000 | grep "Hello World!"
-            # then
-            #   exit 0
-            # else
-            #   exit 1
-            # fi
-            grep --version
-            CIRCLE_WORKFLOW_ID=bef7b59
-            aws eks --region us-east-1 update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID}
-            URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID} -o wide | awk '{print $4}' | tail -n 1)         
-            echo ${URL} 
+            URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
+            echo ${URL}:8000 
             if curl -s ${URL}:8000 | grep "Hello World!"
             then
               exit 0
             else
               exit 1
-            fi   
+            fi
       # - destroy-kubernetes
       # - destroy-environment
   cleanup:
@@ -197,8 +187,8 @@ jobs:
             if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "$WorkflowID" ]]
             then
               echo "----------------Delete confirmed------------------------"
-              echo "Deleting udapeople-${WorkflowID}"
-              echo "Current version is udapeople-${CIRCLE_WORKFLOW_ID:0:7}"            
+              echo "Deleting CapstoneAdlrm-${WorkflowID}"
+              echo "Current version is CapstoneAdlrm-${CIRCLE_WORKFLOW_ID:0:7}"            
               aws cloudformation delete-stack --stack-name "$STACK_NAME"
               aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME" 
               #Query to check the deleted stacks  
@@ -212,27 +202,27 @@ jobs:
 workflows:
   default:
     jobs:
-      # - linting:
-      #     filters:
-      #       branches:
-      #         only: [master]    
-      # - docker-build:
-      #     requires: [linting]      
-      #     filters:
-      #       branches:
-      #         only: [master]
-      # - deploy-infrastructure:
-      #     requires: [docker-build]
-      #     filters:
-      #       branches:
-      #         only: [master] 
-      # - deploy-to-eks:
-      #     requires: [deploy-infrastructure]
-      #     filters:
-      #       branches:
-      #         only: [master]
+      - linting:
+          filters:
+            branches:
+              only: [master]    
+      - docker-build:
+          requires: [linting]      
+          filters:
+            branches:
+              only: [master]
+      - deploy-infrastructure:
+          requires: [docker-build]
+          filters:
+            branches:
+              only: [master] 
+      - deploy-to-eks:
+          requires: [deploy-infrastructure]
+          filters:
+            branches:
+              only: [master]
       - smoke-test:
-          # requires: [deploy-to-eks]
+          requires: [deploy-to-eks]
           filters:
             branches:
               only: [master]
