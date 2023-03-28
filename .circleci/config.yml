@@ -120,11 +120,11 @@ jobs:
             echo "Deploying image with Tag: $TAG"
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
             kubectl rollout status deployment/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --watch=true
-            kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
-            until kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null | grep -v null; do
-              echo "Waiting for service to be ready..."
-              sleep 5
-            done
+            kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --watch
+            URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
+            echo ${URL}
+            curl -v ${URL}:8000
+
       - destroy-environment
 
   smoke-test:
@@ -162,8 +162,9 @@ jobs:
           command: |
             URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
             echo ${URL}
-            curl_output=$(curl -s ${URL}:8000)
+            echo "curl -s ${URL}:8000"
             curl -v ${URL}:8000
+            curl_output=$(curl -s ${URL}:8000)
             echo "${curl_output}"
             if echo "${curl_output}" | grep "Hello World!"
             then
