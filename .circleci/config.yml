@@ -159,6 +159,7 @@ jobs:
             aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Obtaining URL and performing smoke test.
+          command: |
             URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
             echo ${URL}
             curl_output=$(curl -s ${URL}:8000)
