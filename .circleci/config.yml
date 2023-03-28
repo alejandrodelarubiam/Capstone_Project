@@ -232,7 +232,7 @@ workflows:
       #       branches:
       #         only: [master]
       - smoke-test:
-          requires: [deploy-to-eks]
+          # requires: [deploy-to-eks]
           filters:
             branches:
               only: [master]
