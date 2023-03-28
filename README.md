@@ -1,13 +1,14 @@
 ## Summary of the Project
 
-In this Capstone Project a Simple Python "Hello World" application is containerized in Docker, being then uploaded in DockerHub and Deployed in a EKS Cluster, af
+In this Capstone Project a Simple Python "Hello World" application is containerized in Docker, being then uploaded in DockerHub, deployed and exposed through a LoadBalancer in a EKS Cluster, and, after it is tested with a Smoke Test. Finally, Old Stacks are cleaned up. 
 
-In this project the following instructions have been performed:
+In this project the following instructions have been performed on the same CircleCI pipeline:
 
-* Using Hadolint and Pylint to test your project code.
-* Application will be containerized and deployed using Dockerfile and scripts containing Docker commands.
-* Make a prediction in the app containerized by Docker.
-* Adding in the app.py code log statements of prediction's output.
+* Dockerfile is linted using Hadolint.
+* App.py file is linted using Pylint.
+* Application is containerized and uploaded to DockerHub using Dockerfile.
+* Infrastructure (Cluster, Network and Nodes) is deployed using CloudFormation template (infrastructure.yml).
+* App is deployed
 * Installing Kubernetes and creating a local (i.e Minikube) or Cloud Provider (i.e EKS)
 * Writting a script which deploys a Kubernetes container of the app and making a prediction.
 * Uploading all the content in a public GitHub repo, running a CircleCI successful pipeline.
