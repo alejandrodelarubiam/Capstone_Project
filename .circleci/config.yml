@@ -102,10 +102,10 @@ jobs:
       - run:
           name: Install dependencies and AWS CLI
           command: |
-            # Install software-properties-common
+            # Installing software-properties-common
             apt-get update
             apt-get install -y software-properties-common
-            # Install awscli
+            # Installing awscli
             apt-get install -y python3-pip
             pip3 install awscli
       - run:
