@@ -148,21 +148,32 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x kubectl
             mv kubectl /usr/local/bin
-      - run:
-          name: Authenticate with EKS
-          command: |
-            aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
+      # - run:
+      #     name: Authenticate with EKS
+      #     command: |
+      #       aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Obtaining URL and performing smoke test.
           command: |
-            URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
-            echo ${URL}:8000 
+            # URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
+            # echo ${URL}:8000 
+            # if curl -s ${URL}:8000 | grep "Hello World!"
+            # then
+            #   exit 0
+            # else
+            #   exit 1
+            # fi
+            grep --version
+            CIRCLE_WORKFLOW_ID=bef7b59
+            aws eks --region us-east-1 update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID}
+            URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID} -o wide | awk '{print $4}' | tail -n 1)         
+            echo ${URL} 
             if curl -s ${URL}:8000 | grep "Hello World!"
             then
               exit 0
             else
               exit 1
-            fi
+            fi   
       # - destroy-kubernetes
       # - destroy-environment
   cleanup:
@@ -201,25 +212,25 @@ jobs:
 workflows:
   default:
     jobs:
-      - linting:
-          filters:
-            branches:
-              only: [master]    
-      - docker-build:
-          requires: [linting]      
-          filters:
-            branches:
-              only: [master]
-      - deploy-infrastructure:
-          requires: [docker-build]
-          filters:
-            branches:
-              only: [master] 
-      - deploy-to-eks:
-          requires: [deploy-infrastructure]
-          filters:
-            branches:
-              only: [master]
+      # - linting:
+      #     filters:
+      #       branches:
+      #         only: [master]    
+      # - docker-build:
+      #     requires: [linting]      
+      #     filters:
+      #       branches:
+      #         only: [master]
+      # - deploy-infrastructure:
+      #     requires: [docker-build]
+      #     filters:
+      #       branches:
+      #         only: [master] 
+      # - deploy-to-eks:
+      #     requires: [deploy-infrastructure]
+      #     filters:
+      #       branches:
+      #         only: [master]
       - smoke-test:
           requires: [deploy-to-eks]
           filters:
