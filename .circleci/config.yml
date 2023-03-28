@@ -63,10 +63,14 @@ jobs:
           docker_layer_caching: true
       - run: |
           TAG=0.1.$CIRCLE_BUILD_NUM
+          echo "$TAG" >> .circleci/files/tag.txt
           docker build -t adelarubiam/capstone_adlrm:$TAG .
           echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
           docker push adelarubiam/capstone_adlrm:$TAG
-
+      - persist_to_workspace:
+          root: .circleci/files/
+          paths:
+            - tag.txt
   deploy-infrastructure:
     docker: 
       - image: amazon/aws-cli
@@ -87,6 +91,8 @@ jobs:
       - image: python:3.8.10
     steps:
       - checkout
+      - attach_workspace:
+          at: .circleci/files/
       - run:
           name: Install kubectl
           command: |
@@ -109,7 +115,8 @@ jobs:
       - run:
           name: Deploy to EKS
           command: |
-            TAG=0.1.$CIRCLE_BUILD_NUM
+            TAG=$(cat tag.txt)
+            echo "Deploying image with Tag: $TAG"
             kubectl create deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --image=adelarubiam/capstone_adlrm:$TAG
             kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
       - destroy-environment
