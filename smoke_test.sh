@@ -1,4 +1,4 @@
-CIRCLE_WORKFLOW_ID=7df45fe
+CIRCLE_WORKFLOW_ID=a5ee6ab
 aws eks --region us-east-1 update-kubeconfig --name CapstoneADLRM-Cluster-${CIRCLE_WORKFLOW_ID}
 URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID} -o wide | awk '{print $4}' | tail -n 1)
 echo $URL
