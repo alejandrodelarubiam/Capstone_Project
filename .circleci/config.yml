@@ -78,7 +78,7 @@ jobs:
       - checkout
       - run:
           name: Deploying EKS Cluster and Worker Nodes
-          no_output_timeout: 25m
+          no_output_timeout: 20m
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/infrastructure.yml \
@@ -122,7 +122,7 @@ jobs:
             kubectl rollout status deployment/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --watch=true
             kubectl expose deployment capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --port=8000 --target-port=80 --type=LoadBalancer --name=capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7}
             until kubectl get service/capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do : ; done
-            sleep 420
+            sleep 300
       - destroy-environment
 
   smoke-test:
@@ -159,9 +159,7 @@ jobs:
           name: Obtaining URL and performing smoke test.
           command: |
             URL=$(kubectl get svc capstoneadlrm-microservice-${CIRCLE_WORKFLOW_ID:0:7} -o wide | awk '{print $4}' | tail -n 1)         
-            echo ${URL}
-            echo "curl -s ${URL}:8000"
-            curl -v ${URL}:8000
+            echo "Current URL: ${URL}:8000"
             curl_output=$(curl -s ${URL}:8000)
             echo "${curl_output}"
             if echo "${curl_output}" | grep "Hello World!"
@@ -170,8 +168,8 @@ jobs:
             else
               exit 1
             fi
-      # - destroy-kubernetes
-      # - destroy-environment
+      - destroy-kubernetes
+      - destroy-environment
   cleanup:
     docker:
         - image: amazon/aws-cli
@@ -182,7 +180,7 @@ jobs:
           command: |
             export TERM=dumb
             # Fetch the stack names 
-            # I did it slightly different, listing all stacks, filtering by its parameters and comparing with the current version        
+            # This will list all stacks, filtering by its parameters and comparing with the current version        
             echo "Current version: ${CIRCLE_WORKFLOW_ID:0:7}"
             export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
             --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --no-paginate --output text)) 
@@ -194,7 +192,9 @@ jobs:
             then
               echo "----------------Delete confirmed------------------------"
               echo "Deleting CapstoneAdlrm-${WorkflowID}"
-              echo "Current version is CapstoneAdlrm-${CIRCLE_WORKFLOW_ID:0:7}"            
+              echo "Current version is CapstoneAdlrm-${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl delete svc capstoneadlrm-microservice-${WorkflowID}
+              kubectl delete deployment capstoneadlrm-microservice-${WorkflowID}
               aws cloudformation delete-stack --stack-name "$STACK_NAME"
               aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME" 
               #Query to check the deleted stacks  
