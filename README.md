@@ -56,3 +56,4 @@ make install
 * `./scripts/upload_docker.sh`: Tags and uploads an image to Docker Hub.
 * `./scripts/run_kubernetes.sh`: It runs provided Docker Image on Kubernetes, lists pods and forwards container port to host.
 * `RUBRIC_EVIDENCES` folder: Folder with screenshots of each of the points required in project's rubric to ease the review task.
+* `URL.txt`: Exposed URL of microservice, available from internet.
