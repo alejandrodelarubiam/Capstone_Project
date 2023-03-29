@@ -1,1 +1,2 @@
-http://aba4baa31ae2e4640a0f3f59e3034176-2118483143.us-east-1.elb.amazonaws.com:8000/
+GitHub Repo: https://github.com/alejandrodelarubiam/Capstone_Project
+Microservice's URL: http://aba4baa31ae2e4640a0f3f59e3034176-2118483143.us-east-1.elb.amazonaws.com:8000/
