@@ -4,6 +4,5 @@ LABEL maintainer="Udacity"
 COPY . /app
 WORKDIR /app
 RUN pip install --no-cache-dir -r requirements.txt
-FORCING FAIL
 # command to run on container start
 CMD [ "python3", "app.py" ]
