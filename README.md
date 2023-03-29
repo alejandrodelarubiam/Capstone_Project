@@ -2,6 +2,8 @@
 
 In this Capstone Project a Simple Python (v.3.8.10) "Hello World" application is containerized in Docker, being then uploaded in DockerHub, deployed and exposed through a LoadBalancer in a EKS Cluster, and, after it is tested with a Smoke Test. Finally, Old Stacks are cleaned up. 
 
+Followed strategy is *Blue/Green deployment*, being deployed the new image on a fresh infrastructure, and, finally, when all checks have passed, old environment is destroyed.
+
 In this project the following instructions have been performed on the same CircleCI pipeline:
 
 * Dockerfile is linted using Hadolint.

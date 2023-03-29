@@ -13,7 +13,7 @@ def healthcheck():
         mimetype='application/json'
     )
 
-    LOG.info('Status request successfull')FORCINGFAIL
+    LOG.info('Status request successfull')
     return response
 
 @app.route('/metrics')
